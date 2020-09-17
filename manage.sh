@@ -5,7 +5,7 @@ cd $(dirname $0)
 REPO_DIR="arch"
 REPO_NAME="personal"
 
-AUR_HELPER="pikaur"
+AUR_HELPER="paru"
 PKGEXT=".pkg.tar.zst"
 MAKEPKG="makepkg"
 REPO_ADD="repo-add"
