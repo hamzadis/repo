@@ -1,26 +1,30 @@
 #!/usr/bin/env bash
 set -euo pipefail
+shopt -s extglob
+
 cd $(dirname $0)
 
 REPO_DIR="arch"
 REPO_NAME="personal"
 
-AUR_HELPER="pikaur"
+AUR_HELPER="paru"
 PKGEXT=".pkg.tar.zst"
 MAKEPKG="makepkg"
 REPO_ADD="repo-add"
 REPO_REMOVE="repo-remove"
 GIT="git"
+RM="rm"
 
 function show_help {
   echo "Usage: $(basename $0) COMMAND PACKAGE"
   echo -e "Manage the AUR PACKAGE inside the repo\n"
   echo -e "Commands:"
   echo -e "\tdownload\t download the PKGBUILD for the PACKAGE"
-  echo -e "\tbuild\t\t tbuild the downloaded PACKAGE using makepkg"
+  echo -e "\tbuild\t\t build the downloaded PACKAGE using makepkg"
   echo -e "\tupdate\t\t update the repo using the built PACKAGE"
   echo -e "\tclean\t\t clean after the PACKAGE"
   echo -e "\tall\t\t perform all the steps automatically\n"
+  echo -e "\tremove\t\t remove package from repo\n"
   echo -e "Options:"
   echo -e "\t-h, --help\t display this text"
 }
@@ -74,14 +78,22 @@ function git_add {
 }
 
 function update {
-  "${REPO_REMOVE}" -R "${REPO_NAME}.db.tar.gz" "${PACKAGE}" || true
-  cp "../${PACKAGE}/"*"${PKGEXT}" .
+  remove
+  cp "../${PACKAGE}/"!(*-debug*)"${PKGEXT}" .
+
+  # add all packages in case build had
+  # multiple outputs
   "${REPO_ADD}" -n "${REPO_NAME}.db.tar.gz" *"${PKGEXT}"
   git_add
 }
 
 function clean {
   mv "${PACKAGE}" "old.${PACKAGE}.$(date +%s)"
+}
+
+function remove {
+  "${REPO_REMOVE}" -R "${REPO_NAME}.db.tar.gz" "${PACKAGE}" || true
+  "${RM}" -f "${PACKAGE}"*"${PKGEXT}"
 }
 
 case "${COMMAND}" in
@@ -102,6 +114,9 @@ case "${COMMAND}" in
     (cd "${PACKAGE}" && build)
     (cd "${REPO_DIR}" && update)
     clean
+    ;;
+  remove )
+    (cd "${REPO_DIR}" && remove)
     ;;
   * )
     echo "$(basename $0): unknown command: ${COMMAND}" >&2
